@@ -1,0 +1,50 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+ENV/
+.venv/
+.ENV/
+
+# Flask instance folder (contains secrets, config)
+instance/
+
+# Flask cache
+*.db
+*.sqlite3
+
+# Test / coverage
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+nosetests.xml
+test-results/
+
+# Logs
+*.log
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Compiled C extensions
+*.so
+
+# Environment variable files
+.env
+.env.*
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Mac/Linux dump files
+*.swp
