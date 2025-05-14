@@ -1,10 +1,9 @@
 from flask import Flask
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # Allow all origins (for dev)
 
-@app.route('/', methods=['GET'])
-def hello_world():
-    return {"message": "Hello, World!"}, 200
-
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route("/api/hello")
+def hello():
+    return {"message": "Hello from Flask!"}
