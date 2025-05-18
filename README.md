@@ -1,28 +1,61 @@
-### 🔗 Flask + Next.js Fullstack Setup (using `uv` for Python)
+# Datox - No-Code Data Science Platform
 
-### 🧪 1. Install `uv`
+A desktop application for data analysis and visualization without coding.
 
-### 🛠️ 2. Clone and Setup
+## Features
 
+- Data import from CSV, Excel, and other formats
+- Data cleaning and transformation
+- Statistical analysis
+- Data visualization
+- Project saving and loading
 
-git clone [https://github.com/shahnawazkhan11/datox](https://github.com/shahnawazkhan11/datox)
-```bash
-cd datox
-cd backend
+## Installation
 
-# Create and Activate environment 
-source .venv/Scripts/activate
+1. Make sure you have Python 3.9+ installed
+2. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+   or
+   ```
+   pip install numpy pandas pandastable matplotlib scipy
+   ```
 
-# Run backend server
-flask run
+3. Run the application:
+   ```
+   python main.py
+   ```
 
-cd frontend
+## Usage Guide
 
-# Install node modules
-npm install
+### Loading Data
+Click "Open Dataset" to load your data from CSV, Excel, or other supported formats.
 
-# Start frontend dev server
-npm run dev
+### Data Cleaning
+Navigate to the "Data Cleaning" tab to handle missing values and outliers.
 
+### Visualization
+Use the "Visualization" tab to create charts and plots.
 
+### Statistics
+The "Statistics" tab provides descriptive statistics and hypothesis testing.
 
+## Troubleshooting
+
+If you encounter "cannot use geometry manager pack inside . which already has slaves managed by grid" errors:
+- This is a Tkinter layout conflict. Make sure all widgets in the same container use the same geometry manager.
+
+If panels don't appear properly:
+- Try resizing the window or reopening the application.
+
+## Development Status
+
+Current working components:
+- Data loading and viewing
+- Basic UI structure
+
+In progress:
+- Data cleaning functionality
+- Visualization features
+- Statistical analysis
