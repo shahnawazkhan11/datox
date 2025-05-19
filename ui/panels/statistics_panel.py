@@ -15,13 +15,10 @@ class StatisticsPanel(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
-
-        # Configure grid
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=3)
         self.rowconfigure(0, weight=1)
 
-        # Create widgets
         self._create_options_panel()
         self._create_stats_panel()
 
@@ -30,7 +27,6 @@ class StatisticsPanel(ttk.Frame):
         options_frame = ttk.LabelFrame(self, text="Statistics Options")
         options_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Statistics type
         ttk.Label(options_frame, text="Statistics Type:").pack(
             anchor="w", padx=5, pady=5
         )
@@ -42,7 +38,6 @@ class StatisticsPanel(ttk.Frame):
         stats_combo.pack(fill=tk.X, padx=5, pady=2)
         stats_combo.bind("<<ComboboxSelected>>", self._on_stats_type_changed)
 
-        # Column selection
         self.column_frame = ttk.LabelFrame(options_frame, text="Column Selection")
         self.column_frame.pack(fill=tk.X, padx=5, pady=5)
 
@@ -53,7 +48,6 @@ class StatisticsPanel(ttk.Frame):
         )
         self.column_combo.pack(fill=tk.X, padx=5, pady=2)
 
-        # Create hypothesis test frame (hidden initially)
         self.hypo_frame = ttk.LabelFrame(options_frame, text="Hypothesis Test")
 
         ttk.Label(self.hypo_frame, text="Test Type:").pack(anchor="w", padx=5, pady=5)
@@ -73,14 +67,12 @@ class StatisticsPanel(ttk.Frame):
         )
         self.column2_combo.pack(fill=tk.X, padx=5, pady=2)
 
-        # Calculate button
         ttk.Button(
             options_frame,
             text="Calculate Statistics",
             command=self._calculate_statistics,
         ).pack(fill=tk.X, padx=5, pady=10)
 
-        # Export button
         ttk.Button(
             options_frame, text="Export Statistics", command=self._export_statistics
         ).pack(fill=tk.X, padx=5, pady=5)
@@ -90,15 +82,12 @@ class StatisticsPanel(ttk.Frame):
         stats_frame = ttk.LabelFrame(self, text="Statistics Results")
         stats_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
 
-        # Configure stats frame grid
         stats_frame.columnconfigure(0, weight=1)
         stats_frame.rowconfigure(0, weight=1)
 
-        # Create text widget for displaying statistics
         self.stats_text = tk.Text(stats_frame, wrap=tk.WORD, font=("Courier", 10))
         self.stats_text.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Add scrollbar
         scrollbar = ttk.Scrollbar(
             stats_frame, orient=tk.VERTICAL, command=self.stats_text.yview
         )
@@ -128,7 +117,6 @@ class StatisticsPanel(ttk.Frame):
             self.column_combo["values"] = columns
             self.column2_combo["values"] = columns
 
-            # Set initial selections
             if columns:
                 self.column_combo.current(0)
                 if len(columns) > 1:
@@ -144,15 +132,12 @@ class StatisticsPanel(ttk.Frame):
         ):
             return
 
-        # Clear previous results
         self.stats_text.delete(1.0, tk.END)
 
-        # Get selected options
         stats_type = self.stats_var.get()
         df = self.app.data_manager.dataframe
 
         try:
-            # Calculate statistics based on type
             if stats_type == "descriptive":
                 column = self.column_var.get()
                 if not column:
@@ -162,7 +147,6 @@ class StatisticsPanel(ttk.Frame):
                 self._append_text(f"Descriptive Statistics for '{column}':\n\n")
 
                 if pd.api.types.is_numeric_dtype(df[column]):
-                    # Numeric column
                     stats_data = df[column].describe()
                     self._append_text(f"Count: {stats_data['count']}\n")
                     self._append_text(f"Mean: {stats_data['mean']:.4f}\n")
@@ -173,12 +157,10 @@ class StatisticsPanel(ttk.Frame):
                     self._append_text(f"75%: {stats_data['75%']:.4f}\n")
                     self._append_text(f"Max: {stats_data['max']:.4f}\n")
 
-                    # Additional statistics
                     self._append_text(f"\nSkewness: {df[column].skew():.4f}\n")
                     self._append_text(f"Kurtosis: {df[column].kurtosis():.4f}\n")
                     self._append_text(f"Missing values: {df[column].isna().sum()}\n")
                 else:
-                    # Categorical column
                     value_counts = df[column].value_counts()
                     self._append_text(f"Total count: {len(df[column])}\n")
                     self._append_text(f"Unique values: {df[column].nunique()}\n")
@@ -190,7 +172,6 @@ class StatisticsPanel(ttk.Frame):
                         self._append_text(f"{val}: {count} ({percent:.2f}%)\n")
 
             elif stats_type == "correlation":
-                # Compute correlation matrix for numeric columns
                 numeric_df = df.select_dtypes(include=["number"])
                 if numeric_df.empty:
                     self._append_text(
@@ -201,7 +182,6 @@ class StatisticsPanel(ttk.Frame):
                 corr_matrix = numeric_df.corr()
 
                 self._append_text("Correlation Matrix:\n\n")
-                # Format the correlation matrix for display
                 header = "           "
                 for col in corr_matrix.columns:
                     header += f"{col[:10]:>10} "
@@ -225,9 +205,7 @@ class StatisticsPanel(ttk.Frame):
                 self._append_text(f"Hypothesis Test: {test_type}\n")
                 self._append_text(f"Between '{col1}' and '{col2}'\n\n")
 
-                # Perform the selected test
                 if test_type == "ttest":
-                    # Ensure numeric data
                     if not pd.api.types.is_numeric_dtype(
                         df[col1]
                     ) or not pd.api.types.is_numeric_dtype(df[col2]):
@@ -236,17 +214,14 @@ class StatisticsPanel(ttk.Frame):
                         )
                         return
 
-                    # Remove NaN values
                     data1 = df[col1].dropna()
                     data2 = df[col2].dropna()
 
-                    # Perform t-test
                     result = stats.ttest_ind(data1, data2, nan_policy="omit")
 
                     self._append_text(f"t-statistic: {result.statistic:.4f}\n")
                     self._append_text(f"p-value: {result.pvalue:.4f}\n\n")
 
-                    # Interpret result
                     alpha = 0.05
                     self._append_text(f"At significance level {alpha}:\n")
                     if result.pvalue < alpha:
@@ -259,17 +234,14 @@ class StatisticsPanel(ttk.Frame):
                         )
 
                 elif test_type == "chi2":
-                    # Create contingency table
                     contingency = pd.crosstab(df[col1], df[col2])
 
-                    # Perform chi-square test
                     chi2, p, dof, expected = stats.chi2_contingency(contingency)
 
                     self._append_text(f"Chi-square statistic: {chi2:.4f}\n")
                     self._append_text(f"p-value: {p:.4f}\n")
                     self._append_text(f"Degrees of freedom: {dof}\n\n")
 
-                    # Interpret result
                     alpha = 0.05
                     self._append_text(f"At significance level {alpha}:\n")
                     if p < alpha:
@@ -282,23 +254,19 @@ class StatisticsPanel(ttk.Frame):
                         )
 
                 elif test_type == "anova":
-                    # Check if second column is categorical
                     if not pd.api.types.is_numeric_dtype(df[col1]):
                         self._append_text(
                             "ANOVA requires a numeric column for the first selection."
                         )
                         return
 
-                    # Group data
                     groups = df.groupby(col2)[col1].apply(list).values
 
-                    # Perform ANOVA
                     result = stats.f_oneway(*groups)
 
                     self._append_text(f"F-statistic: {result.statistic:.4f}\n")
                     self._append_text(f"p-value: {result.pvalue:.4f}\n\n")
 
-                    # Interpret result
                     alpha = 0.05
                     self._append_text(f"At significance level {alpha}:\n")
                     if result.pvalue < alpha:

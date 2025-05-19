@@ -24,12 +24,9 @@ class DataManager:
         self.file_path = file_path
         self.file_name = os.path.basename(file_path)
 
-        # List of encodings to try
         encodings = ["utf-8", "latin1", "iso-8859-1", "cp1252"]
 
-        # Load based on file extension
         if file_path.endswith(".csv"):
-            # Try different encodings
             for encoding in encodings:
                 try:
                     self.dataframe = pd.read_csv(
@@ -38,12 +35,12 @@ class DataManager:
                         on_bad_lines="skip",
                         low_memory=True,
                     )
-                    break  # If successful, exit the loop
+                    break  
                 except UnicodeDecodeError:
-                    continue  # Try the next encoding
+                    continue  
                 except Exception as e:
                     raise ValueError(f"Error reading CSV file: {str(e)}")
-            else:  # If no encoding worked
+            else:  
                 raise ValueError(
                     "Could not determine the file encoding. The file might be corrupted."
                 )
@@ -58,16 +55,13 @@ class DataManager:
                 f"Unsupported file format. Only CSV and Excel files are supported."
             )
 
-        # For large datasets, create a sample for the original dataframe to save memory
-        if len(self.dataframe) > 100000:  # If more than 100,000 rows
+        if len(self.dataframe) > 100000: 
             self.original_dataframe = self.dataframe.sample(
                 n=100000, random_state=42
             ).copy()
         else:
-            # Store original data
             self.original_dataframe = self.dataframe.copy()
 
-        # Reset history
         self.history = []
 
         return self.dataframe
@@ -103,7 +97,6 @@ class DataManager:
         if self.dataframe is None or column not in self.dataframe.columns:
             return None
 
-        # Add operation to history
         self.history.append(
             {
                 "operation": "clean_missing",
@@ -113,10 +106,8 @@ class DataManager:
             }
         )
 
-        # Make a copy of the dataframe to avoid modifying the original
         df = self.dataframe.copy()
 
-        # Apply cleaning method
         if method == "drop":
             self.dataframe = df.dropna(subset=[column])
         elif method == "mean" and pd.api.types.is_numeric_dtype(df[column]):
@@ -136,7 +127,6 @@ class DataManager:
         if self.dataframe is None:
             return 0
 
-        # Add operation to history
         self.history.append({"operation": "remove_duplicates"})
 
         original_rows = len(self.dataframe)
@@ -152,7 +142,6 @@ class DataManager:
         if not pd.api.types.is_numeric_dtype(self.dataframe[column]):
             return None
 
-        # Add operation to history
         self.history.append(
             {
                 "operation": "handle_outliers",
@@ -161,7 +150,6 @@ class DataManager:
             }
         )
 
-        # Calculate IQR
         q1 = self.dataframe[column].quantile(0.25)
         q3 = self.dataframe[column].quantile(0.75)
         iqr = q3 - q1
@@ -169,12 +157,10 @@ class DataManager:
         upper_bound = q3 + 1.5 * iqr
 
         if method == "cap":
-            # Cap outliers at the boundaries
             self.dataframe[column] = self.dataframe[column].clip(
                 lower=lower_bound, upper=upper_bound
             )
         elif method == "remove":
-            # Remove rows with outliers
             self.dataframe = self.dataframe[
                 (self.dataframe[column] >= lower_bound)
                 & (self.dataframe[column] <= upper_bound)
@@ -189,13 +175,10 @@ class DataManager:
 
         stats = {}
         series = self.dataframe[column]
-
-        # Count of values
         stats["count"] = len(series)
         stats["missing"] = series.isna().sum()
         stats["unique"] = series.nunique()
 
-        # For numeric columns
         if pd.api.types.is_numeric_dtype(series):
             stats["mean"] = series.mean()
             stats["median"] = series.median()
@@ -205,15 +188,12 @@ class DataManager:
             stats["skew"] = series.skew()
             stats["kurtosis"] = series.kurtosis()
 
-            # Quantiles
             stats["25%"] = series.quantile(0.25)
             stats["50%"] = series.quantile(0.50)
             stats["75%"] = series.quantile(0.75)
 
-        # For all columns
         stats["dtype"] = str(series.dtype)
 
-        # For categorical/string columns
         if pd.api.types.is_object_dtype(series) or pd.api.types.is_categorical_dtype(
             series
         ):
