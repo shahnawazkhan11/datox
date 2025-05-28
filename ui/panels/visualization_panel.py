@@ -245,6 +245,46 @@ class VisualizationPanel(ttk.Frame):
             variable=self.mean_var,
         )
         mean_check.pack(anchor="w", padx=5, pady=2)
+        
+        # Add orientation option for box plots
+        orient_frame = ttk.Frame(self.box_frame)
+        orient_frame.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Label(orient_frame, text="Orientation:").pack(side=tk.LEFT)
+        self.box_orient_var = tk.StringVar(value="vertical")
+        orient_values = ["vertical", "horizontal"]
+        orient_combo = ttk.Combobox(
+            orient_frame, textvariable=self.box_orient_var, values=orient_values, width=10
+        )
+        orient_combo.pack(side=tk.LEFT, padx=5)
+        
+        # Add width control for boxes
+        width_frame = ttk.Frame(self.box_frame)
+        width_frame.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Label(width_frame, text="Box Width:").pack(side=tk.LEFT)
+        self.box_width_var = tk.StringVar(value="0.8")
+        width_entry = ttk.Entry(
+            width_frame, textvariable=self.box_width_var, width=5
+        )
+        width_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Add category limit
+        limit_frame = ttk.Frame(self.box_frame)
+        limit_frame.pack(fill=tk.X, padx=5, pady=2)
+        ttk.Label(limit_frame, text="Max Categories:").pack(side=tk.LEFT)
+        self.box_limit_var = tk.StringVar(value="10")
+        limit_entry = ttk.Entry(
+            limit_frame, textvariable=self.box_limit_var, width=5
+        )
+        limit_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Add category sorting
+        self.box_sort_var = tk.BooleanVar(value=False)
+        sort_check = ttk.Checkbutton(
+            self.box_frame,
+            text="Sort categories by median",
+            variable=self.box_sort_var,
+        )
+        sort_check.pack(anchor="w", padx=5, pady=2)
 
         palette_frame = ttk.Frame(self.box_frame)
         palette_frame.pack(fill=tk.X, padx=5, pady=2)
@@ -791,62 +831,161 @@ class VisualizationPanel(ttk.Frame):
         notch = self.notch_var.get()
         showmeans = self.mean_var.get()
         palette = self.box_palette_var.get()
-
-        sns.boxplot(
-            x=x_col,
-            y=y_col,
-            data=valid_data,
-            notch=notch,
-            showmeans=showmeans,
-            meanprops={
-                "marker": "o",
-                "markerfacecolor": "white",
-                "markeredgecolor": "black",
-            },
-            palette=palette,
-            ax=ax,
-        )
-        if self.points_var.get():
-            sns.swarmplot(
+        orientation = self.box_orient_var.get()
+        
+        # Parse box width
+        try:
+            box_width = float(self.box_width_var.get())
+            if box_width <= 0 or box_width > 1:
+                box_width = 0.8
+        except ValueError:
+            box_width = 0.8
+        
+        # Parse category limit
+        try:
+            max_categories = int(self.box_limit_var.get())
+            if max_categories <= 0:
+                max_categories = 10
+        except ValueError:
+            max_categories = 10
+        
+        # Get categories and potentially sort or limit them
+        categories = valid_data[x_col].unique()
+        
+        if self.box_sort_var.get():
+            # Sort categories by their median values
+            category_medians = {}
+            for cat in categories:
+                category_medians[cat] = valid_data[valid_data[x_col] == cat][y_col].median()
+            
+            # Sort categories by their median values
+            sorted_categories = sorted(category_medians.items(), key=lambda x: x[1])
+            categories = [item[0] for item in sorted_categories]
+        
+        # Limit the number of categories if there are too many
+        if len(categories) > max_categories:
+            message = f"Limiting display to {max_categories} categories (out of {len(categories)})"
+            ax.set_title(message, fontsize=10, color='gray')
+            
+            if self.box_sort_var.get():
+                # Take the categories with the highest median values
+                categories = categories[-max_categories:]
+            else:
+                # Take the first max_categories
+                categories = categories[:max_categories]
+        
+        # Filter data to only include selected categories
+        valid_data = valid_data[valid_data[x_col].isin(categories)]
+        
+        # Determine plot orientation
+        if orientation == "horizontal":
+            # For horizontal orientation, x and y are flipped
+            sns.boxplot(
+                y=x_col,  # x becomes y
+                x=y_col,  # y becomes x
+                data=valid_data,
+                notch=notch,
+                showmeans=showmeans,
+                meanprops={
+                    "marker": "o",
+                    "markerfacecolor": "white",
+                    "markeredgecolor": "black",
+                },
+                palette=palette,
+                ax=ax,
+                width=box_width,
+                fliersize=3 if self.points_var.get() else 0
+            )
+            
+            if self.points_var.get():
+                sns.stripplot(
+                    y=x_col,  # x becomes y
+                    x=y_col,  # y becomes x
+                    data=valid_data,
+                    color="black",
+                    alpha=0.3,
+                    size=3,
+                    ax=ax,
+                    jitter=True
+                )
+                
+            ax.set_xlabel(f"{y_col}", fontsize=12)
+            ax.set_ylabel(f"{x_col}", fontsize=12)
+            
+        else:  # vertical orientation
+            sns.boxplot(
                 x=x_col,
                 y=y_col,
                 data=valid_data,
-                color="black",
-                alpha=0.5,
-                size=4,
+                notch=notch,
+                showmeans=showmeans,
+                meanprops={
+                    "marker": "o",
+                    "markerfacecolor": "white",
+                    "markeredgecolor": "black",
+                },
+                palette=palette,
                 ax=ax,
+                width=box_width,
+                fliersize=3 if self.points_var.get() else 0
             )
+            
+            if self.points_var.get():
+                sns.stripplot(
+                    x=x_col,
+                    y=y_col,
+                    data=valid_data,
+                    color="black",
+                    alpha=0.3,
+                    size=3,
+                    ax=ax,
+                    jitter=True
+                )
+                
+            ax.set_xlabel(f"{x_col}", fontsize=12)
+            ax.set_ylabel(f"{y_col}", fontsize=12)
 
-        categories = valid_data[x_col].unique()
-        stats_text = ""
-
-        if len(categories) <= 5:
-            for cat in categories:
+        # Display statistics in a more compact way - only show for up to 5 categories to avoid clutter
+        displayed_categories = valid_data[x_col].unique()
+        if len(displayed_categories) <= 5:
+            stats_rows = []
+            for cat in displayed_categories:
                 cat_data = valid_data[valid_data[x_col] == cat][y_col]
-                stats_text += f"{cat}:\n"
-                stats_text += f"  Count: {len(cat_data)}\n"
-                stats_text += f"  Mean: {cat_data.mean():.2f}\n"
-                stats_text += f"  Median: {cat_data.median():.2f}\n"
-                stats_text += f"  StdDev: {cat_data.std():.2f}\n\n"
-
-            ax.text(
-                1.02,
-                0.95,
-                stats_text,
-                transform=ax.transAxes,
-                fontsize=9,
-                verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-            )
-            self.figure.subplots_adjust(right=0.75)
-
-        ax.set_xlabel(f"{x_col}", fontsize=12)
-        ax.set_ylabel(f"{y_col}", fontsize=12)
-
-        if len(categories) > 5:
+                stats_rows.append(f"{cat}: n={len(cat_data)}, mean={cat_data.mean():.2f}, median={cat_data.median():.2f}")
+            
+            stats_text = "\n".join(stats_rows)
+            
+            # Place the stats box in the appropriate location based on orientation
+            if orientation == "horizontal":
+                ax.text(
+                    0.98, 0.02, stats_text,
+                    transform=ax.transAxes, fontsize=9,
+                    verticalalignment='bottom', horizontalalignment='right',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8)
+                )
+            else:
+                ax.text(
+                    0.02, 0.98, stats_text,
+                    transform=ax.transAxes, fontsize=9,
+                    verticalalignment='top', horizontalalignment='left',
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8)
+                )
+        
+        # Adjust tick labels for better readability
+        if orientation == "vertical" and len(displayed_categories) > 3:
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
-
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:,.2f}"))
+        
+        # Set formatter for numeric axis
+        if orientation == "horizontal":
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.2f}"))
+        else:
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:,.2f}"))
+            
+        # Adjust figure layout if needed
+        if len(displayed_categories) <= 5 and orientation == "vertical":
+            self.figure.tight_layout(rect=[0, 0, 0.85, 1])  # Make space for stats on the right
+        else:
+            self.figure.tight_layout()
 
     def _create_heatmap_plot(self, df, ax):
         """Create an enhanced heatmap for correlation analysis"""
