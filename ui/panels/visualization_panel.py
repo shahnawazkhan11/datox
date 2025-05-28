@@ -5,22 +5,19 @@ VisualizationPanel - Panel for data visualization
 import tkinter as tk
 from tkinter import ttk, messagebox
 import pandas as pd
-import matplotlib
-matplotlib.use('TkAgg')  # Set backend before other matplotlib imports
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 import numpy as np
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
-from matplotlib.backend_bases import key_press_handler
 
 
 class VisualizationPanel(ttk.Frame):
     """Panel for data visualization"""
 
-    def _init_(self, parent, app):
-        super()._init_(parent)
+    def __init__(self, parent, app):
+        super().__init__(parent)
         self.app = app
 
         self.columnconfigure(0, weight=1)
@@ -108,7 +105,7 @@ class VisualizationPanel(ttk.Frame):
             reg_type_frame, textvariable=self.reg_type_var, values=reg_types, width=10
         )
         reg_type_combo.pack(side=tk.LEFT, padx=5)
-
+        
         poly_frame = ttk.Frame(self.scatter_frame)
         poly_frame.pack(fill=tk.X, padx=5, pady=2)
         ttk.Label(poly_frame, text="Polynomial Degree:").pack(side=tk.LEFT)
@@ -248,45 +245,6 @@ class VisualizationPanel(ttk.Frame):
             variable=self.mean_var,
         )
         mean_check.pack(anchor="w", padx=5, pady=2)
-
-        # Add orientation option for box plots
-        orient_frame = ttk.Frame(self.box_frame)
-        orient_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(orient_frame, text="Orientation:").pack(side=tk.LEFT)
-        self.box_orient_var = tk.StringVar(value="vertical")
-        orient_values = ["vertical", "horizontal"]
-        orient_combo = ttk.Combobox(
-            orient_frame,
-            textvariable=self.box_orient_var,
-            values=orient_values,
-            width=10,
-        )
-        orient_combo.pack(side=tk.LEFT, padx=5)
-
-        # Add width control for boxes
-        width_frame = ttk.Frame(self.box_frame)
-        width_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(width_frame, text="Box Width:").pack(side=tk.LEFT)
-        self.box_width_var = tk.StringVar(value="0.8")
-        width_entry = ttk.Entry(width_frame, textvariable=self.box_width_var, width=5)
-        width_entry.pack(side=tk.LEFT, padx=5)
-
-        # Add category limit
-        limit_frame = ttk.Frame(self.box_frame)
-        limit_frame.pack(fill=tk.X, padx=5, pady=2)
-        ttk.Label(limit_frame, text="Max Categories:").pack(side=tk.LEFT)
-        self.box_limit_var = tk.StringVar(value="10")
-        limit_entry = ttk.Entry(limit_frame, textvariable=self.box_limit_var, width=5)
-        limit_entry.pack(side=tk.LEFT, padx=5)
-
-        # Add category sorting
-        self.box_sort_var = tk.BooleanVar(value=False)
-        sort_check = ttk.Checkbutton(
-            self.box_frame,
-            text="Sort categories by median",
-            variable=self.box_sort_var,
-        )
-        sort_check.pack(anchor="w", padx=5, pady=2)
 
         palette_frame = ttk.Frame(self.box_frame)
         palette_frame.pack(fill=tk.X, padx=5, pady=2)
@@ -435,19 +393,23 @@ class VisualizationPanel(ttk.Frame):
 
             if current_x not in categorical_cols and categorical_cols:
                 self.x_var.set(categorical_cols[0])
-            elif not categorical_cols and numeric_cols:
+            elif (
+                not categorical_cols and numeric_cols
+            ):  
                 self.x_var.set(numeric_cols[0])
 
             if current_y not in numeric_cols and numeric_cols:
                 self.y_var.set(numeric_cols[0])
 
-        else:
+        else: 
             self.x_combo["values"] = categorical_cols
             self.y_combo["values"] = numeric_cols
 
             if current_x not in categorical_cols and categorical_cols:
                 self.x_var.set(categorical_cols[0])
-            elif not categorical_cols and numeric_cols:
+            elif (
+                not categorical_cols and numeric_cols
+            ): 
                 self.x_var.set(numeric_cols[0])
 
             if current_y not in numeric_cols and numeric_cols:
@@ -461,51 +423,22 @@ class VisualizationPanel(ttk.Frame):
         plot_frame.columnconfigure(0, weight=1)
         plot_frame.rowconfigure(0, weight=1)
 
-        # Create figure with properly sized figsize for better display
         self.figure = Figure(figsize=(7, 5), dpi=100)
-        
-        # Create canvas with proper configuration
         self.canvas = FigureCanvasTkAgg(self.figure, master=plot_frame)
         self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
-        
-        # Create toolbar frame
+
         toolbar_frame = ttk.Frame(plot_frame)
         toolbar_frame.grid(row=1, column=0, sticky="ew")
-        
-        # Create the matplotlib navigation toolbar
         self.toolbar = NavigationToolbar2Tk(self.canvas, toolbar_frame)
         self.toolbar.update()
-        
-        # Draw the canvas to initialize it
-        self.canvas.draw()
-        
-        # Add custom buttons to enhance interactivity
-        self._add_custom_navigation_buttons(toolbar_frame)
 
-    def _add_custom_navigation_buttons(self, toolbar_frame):
-        """Add custom navigation buttons to enhance the standard toolbar"""
-        buttons_frame = ttk.Frame(toolbar_frame)
-        buttons_frame.pack(side=tk.RIGHT, padx=5)
-        
-        # Reset view button with proper error handling
-        reset_btn = ttk.Button(
-            buttons_frame, 
-            text="Reset View", 
-            command=self._reset_view
-        )
-        reset_btn.pack(side=tk.LEFT, padx=2)
-        
-        # Set focus behavior for buttons
-        reset_btn.bind("<FocusIn>", lambda e: e.widget.configure(style="Accent.TButton"))
-        reset_btn.bind("<FocusOut>", lambda e: e.widget.configure(style="TButton"))
-
-    def _reset_view(self):
-        """Reset the view to show all data"""
-        if hasattr(self, 'figure') and self.figure.axes:
-            for ax in self.figure.axes:
-                ax.relim()
-                ax.autoscale()
-            self.canvas.draw()
+    def _update_column_list(self):
+        """Update the column dropdowns with available columns"""
+        if (
+            hasattr(self.app.data_manager, "dataframe")
+            and self.app.data_manager.dataframe is not None
+        ):
+            self._update_column_suggestions()
 
     def _generate_plot(self):
         """Generate the selected plot type"""
@@ -545,13 +478,9 @@ class VisualizationPanel(ttk.Frame):
                 ax.set_title(title, fontsize=14, fontweight="bold", pad=15)
 
             self.figure.tight_layout()
+
             self.canvas.draw()
-            
-            # Make sure the toolbar is in normal mode after plot generation
-            if hasattr(self, 'toolbar'):
-                self.toolbar.mode = ''
-                self.toolbar.set_message('')
-        
+
         except Exception as e:
             messagebox.showerror("Plot Error", f"Error generating plot: {str(e)}")
             self.figure.clear()
@@ -621,7 +550,8 @@ class VisualizationPanel(ttk.Frame):
                     label=f"y = {z[0]:.4f}x + {z[1]:.4f}",
                 )
 
-                if len(x_data) > 2:
+
+                if len(x_data) > 2:  
                     y_pred = p(x_data)
                     x_sorted = np.sort(x_data)
                     y_pred_sorted = p(x_sorted)
@@ -822,7 +752,7 @@ class VisualizationPanel(ttk.Frame):
                 f"Max: {max_val:.4f}\n"
                 f"Count: {len(data)}"
             )
-
+            
             ax.text(
                 0.95,
                 0.95,
@@ -861,175 +791,62 @@ class VisualizationPanel(ttk.Frame):
         notch = self.notch_var.get()
         showmeans = self.mean_var.get()
         palette = self.box_palette_var.get()
-        orientation = self.box_orient_var.get()
 
-        # Parse box width
-        try:
-            box_width = float(self.box_width_var.get())
-            if box_width <= 0 or box_width > 1:
-                box_width = 0.8
-        except ValueError:
-            box_width = 0.8
-
-        # Parse category limit
-        try:
-            max_categories = int(self.box_limit_var.get())
-            if max_categories <= 0:
-                max_categories = 10
-        except ValueError:
-            max_categories = 10
-
-        # Get categories and potentially sort or limit them
-        categories = valid_data[x_col].unique()
-
-        if self.box_sort_var.get():
-            # Sort categories by their median values
-            category_medians = {}
-            for cat in categories:
-                category_medians[cat] = valid_data[valid_data[x_col] == cat][
-                    y_col
-                ].median()
-
-            # Sort categories by their median values
-            sorted_categories = sorted(category_medians.items(), key=lambda x: x[1])
-            categories = [item[0] for item in sorted_categories]
-
-        # Limit the number of categories if there are too many
-        if len(categories) > max_categories:
-            message = f"Limiting display to {max_categories} categories (out of {len(categories)})"
-            ax.set_title(message, fontsize=10, color="gray")
-
-            if self.box_sort_var.get():
-                # Take the categories with the highest median values
-                categories = categories[-max_categories:]
-            else:
-                # Take the first max_categories
-                categories = categories[:max_categories]
-
-        # Filter data to only include selected categories
-        valid_data = valid_data[valid_data[x_col].isin(categories)]
-
-        # Determine plot orientation
-        if orientation == "horizontal":
-            # For horizontal orientation, x and y are flipped
-            sns.boxplot(
-                y=x_col,  # x becomes y
-                x=y_col,  # y becomes x
-                data=valid_data,
-                notch=notch,
-                showmeans=showmeans,
-                meanprops={
-                    "marker": "o",
-                    "markerfacecolor": "white",
-                    "markeredgecolor": "black",
-                },
-                palette=palette,
-                ax=ax,
-                width=box_width,
-                fliersize=3 if self.points_var.get() else 0,
-            )
-
-            if self.points_var.get():
-                sns.stripplot(
-                    y=x_col,  # x becomes y
-                    x=y_col,  # y becomes x
-                    data=valid_data,
-                    color="black",
-                    alpha=0.3,
-                    size=3,
-                    ax=ax,
-                    jitter=True,
-                )
-
-            ax.set_xlabel(f"{y_col}", fontsize=12)
-            ax.set_ylabel(f"{x_col}", fontsize=12)
-
-        else:  # vertical orientation
-            sns.boxplot(
+        sns.boxplot(
+            x=x_col,
+            y=y_col,
+            data=valid_data,
+            notch=notch,
+            showmeans=showmeans,
+            meanprops={
+                "marker": "o",
+                "markerfacecolor": "white",
+                "markeredgecolor": "black",
+            },
+            palette=palette,
+            ax=ax,
+        )
+        if self.points_var.get():
+            sns.swarmplot(
                 x=x_col,
                 y=y_col,
                 data=valid_data,
-                notch=notch,
-                showmeans=showmeans,
-                meanprops={
-                    "marker": "o",
-                    "markerfacecolor": "white",
-                    "markeredgecolor": "black",
-                },
-                palette=palette,
+                color="black",
+                alpha=0.5,
+                size=4,
                 ax=ax,
-                width=box_width,
-                fliersize=3 if self.points_var.get() else 0,
             )
 
-            if self.points_var.get():
-                sns.stripplot(
-                    x=x_col,
-                    y=y_col,
-                    data=valid_data,
-                    color="black",
-                    alpha=0.3,
-                    size=3,
-                    ax=ax,
-                    jitter=True,
-                )
+        categories = valid_data[x_col].unique()
+        stats_text = ""
 
-            ax.set_xlabel(f"{x_col}", fontsize=12)
-            ax.set_ylabel(f"{y_col}", fontsize=12)
-
-        # Display statistics in a more compact way - only show for up to 5 categories to avoid clutter
-        displayed_categories = valid_data[x_col].unique()
-        if len(displayed_categories) <= 5:
-            stats_rows = []
-            for cat in displayed_categories:
+        if len(categories) <= 5:
+            for cat in categories:
                 cat_data = valid_data[valid_data[x_col] == cat][y_col]
-                stats_rows.append(
-                    f"{cat}: n={len(cat_data)}, mean={cat_data.mean():.2f}, median={cat_data.median():.2f}"
-                )
+                stats_text += f"{cat}:\n"
+                stats_text += f"  Count: {len(cat_data)}\n"
+                stats_text += f"  Mean: {cat_data.mean():.2f}\n"
+                stats_text += f"  Median: {cat_data.median():.2f}\n"
+                stats_text += f"  StdDev: {cat_data.std():.2f}\n\n"
 
-            stats_text = "\n".join(stats_rows)
+            ax.text(
+                1.02,
+                0.95,
+                stats_text,
+                transform=ax.transAxes,
+                fontsize=9,
+                verticalalignment="top",
+                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+            )
+            self.figure.subplots_adjust(right=0.75)
 
-            # Place the stats box in the appropriate location based on orientation
-            if orientation == "horizontal":
-                ax.text(
-                    0.98,
-                    0.02,
-                    stats_text,
-                    transform=ax.transAxes,
-                    fontsize=9,
-                    verticalalignment="bottom",
-                    horizontalalignment="right",
-                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8),
-                )
-            else:
-                ax.text(
-                    0.02,
-                    0.98,
-                    stats_text,
-                    transform=ax.transAxes,
-                    fontsize=9,
-                    verticalalignment="top",
-                    horizontalalignment="left",
-                    bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8),
-                )
+        ax.set_xlabel(f"{x_col}", fontsize=12)
+        ax.set_ylabel(f"{y_col}", fontsize=12)
 
-        # Adjust tick labels for better readability
-        if orientation == "vertical" and len(displayed_categories) > 3:
+        if len(categories) > 5:
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
-        # Set formatter for numeric axis
-        if orientation == "horizontal":
-            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:,.2f}"))
-        else:
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:,.2f}"))
-
-        # Adjust figure layout if needed
-        if len(displayed_categories) <= 5 and orientation == "vertical":
-            self.figure.tight_layout(
-                rect=[0, 0, 0.85, 1]
-            )  # Make space for stats on the right
-        else:
-            self.figure.tight_layout()
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:,.2f}"))
 
     def _create_heatmap_plot(self, df, ax):
         """Create an enhanced heatmap for correlation analysis"""
@@ -1078,10 +895,10 @@ class VisualizationPanel(ttk.Frame):
 
         ax.set_title(self.title_var.get(), fontsize=14, pad=20)
 
-        if len(corr_matrix) > 1:
+        if len(corr_matrix) > 1:  
             strong_corrs = []
             for i in range(len(corr_matrix.columns)):
-                for j in range(i + 1, len(corr_matrix.columns)):
+                for j in range(i + 1, len(corr_matrix.columns)): 
                     if abs(corr_matrix.iloc[i, j]) > 0.7:
                         strong_corrs.append(
                             (
@@ -1121,7 +938,7 @@ class VisualizationPanel(ttk.Frame):
                 ("PNG files", "*.png"),
                 ("PDF files", "*.pdf"),
                 ("SVG files", "*.svg"),
-                ("All files", "."),
+                ("All files", "*.*"),
             ],
         )
 
@@ -1136,81 +953,3 @@ class VisualizationPanel(ttk.Frame):
         """Called when the panel is shown"""
         self._update_column_list()
         self._on_chart_type_changed(None)
-        
-        # Handle platform-specific bindings for mouse wheel
-        self.canvas.mpl_disconnect('scroll_event')  # Disconnect existing scrolling
-        
-        # Bind key events for navigation shortcuts
-        self.canvas.mpl_connect('key_press_event', 
-                               lambda event: key_press_handler(event, self.canvas, self.toolbar))
-        
-        # Set up platform-specific mouse wheel bindings
-        if sys.platform == 'darwin':  # macOS
-            self.canvas.get_tk_widget().bind("<MouseWheel>", 
-                                            lambda event: self._process_mousewheel(event, 1))
-        elif sys.platform == 'win32':  # Windows
-            self.canvas.get_tk_widget().bind("<MouseWheel>", 
-                                            lambda event: self._process_mousewheel(event, 2))
-        else:  # Linux and others
-            self.canvas.get_tk_widget().bind("<Button-4>", 
-                                            lambda event: self._process_mousewheel(event, 3))
-            self.canvas.get_tk_widget().bind("<Button-5>", 
-                                            lambda event: self._process_mousewheel(event, 4))
-
-    def _process_mousewheel(self, event, platform_id):
-        """Process mousewheel events for zooming with proper platform handling"""
-        if not hasattr(self, 'figure') or not self.figure.axes:
-            return
-        
-        ax = self.figure.axes[0]
-        
-        # Determine zoom direction based on platform
-        if platform_id == 1:  # macOS
-            delta = event.delta
-        elif platform_id == 2:  # Windows
-            delta = event.delta
-        elif platform_id == 3:  # Linux scroll up
-            delta = 120
-        else:  # Linux scroll down
-            delta = -120
-        
-        # Calculate zoom factor based on scroll direction
-        factor = 1.0
-        if delta > 0:
-            factor = 1.1  # zoom in
-        elif delta < 0:
-            factor = 0.9  # zoom out
-        else:
-            return  # no zoom
-        
-        # Get current axis limits
-        xmin, xmax = ax.get_xlim()
-        ymin, ymax = ax.get_ylim()
-        
-        # Get mouse position in axes coordinates
-        try:
-            # Convert event position to axes coordinates
-            x = event.x
-            y = event.y
-            
-            # Transform point from screen to data coordinates
-            transform = ax.transData.inverted()
-            data_x, data_y = transform.transform((x, y))
-            
-            # Calculate new limits keeping mouse position fixed
-            new_xmin = data_x - (data_x - xmin) / factor
-            new_xmax = data_x + (xmax - data_x) / factor
-            new_ymin = data_y - (data_y - ymin) / factor
-            new_ymax = data_y + (ymax - data_y) / factor
-            
-            # Set new limits
-            ax.set_xlim(new_xmin, new_xmax)
-            ax.set_ylim(new_ymin, new_ymax)
-            
-            # Update the display
-            self.canvas.draw_idle()
-        except Exception:
-            # Fallback to simple zoom if coordinate transformation fails
-            ax.set_xlim(xmin * factor, xmax * factor)
-            ax.set_ylim(ymin * factor, ymax * factor)
-            self.canvas.draw_idle()
